@@ -1,0 +1,8 @@
+/tmp
+/snapshot/package-lock.json
+/bare.git
+/worktree
+/workdir
+/logs
+/tmp.txt
+/log.txt

@@ -1,0 +1,1 @@
+{"server1":true,"server2":true,"active":"server1","non-active":"server2"}

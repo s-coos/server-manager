@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "dev": "tsx src/index.ts",
     "test": "echo 'No tests'"
   },
   "dependencies": {
@@ -14,7 +14,7 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.30",
-    "typescript": "^5.4.2",
-    "ts-node": "^10.9.2"
+    "tsx": "^4.20.5",
+    "typescript": "^5.4.2"
   }
 }

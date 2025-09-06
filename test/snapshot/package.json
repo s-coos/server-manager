@@ -1,0 +1,16 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test": "echo 'No tests'",
+    "start": "node --env-file=.env dist/index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
+    "typescript": "^5.9.2"
+  }
+}

@@ -56,9 +56,11 @@ mkdir workdir
 git -C workdir clone https://github.com/repo/path.git server1
 git -C workdir clone https://github.com/repo/path.git server2
 
-# prepare required configurations if needed
+# prepare required configurations
 cp workdir/server1/.env.example workdir/server1/.env
+(cd workdir/server1 && npm i && npm run build)
 cp workdir/server2/.env.example workdir/server2/.env
+(cd workdir/server2 && npm i && npm run build)
 cp .askpass.sh workdir
 ```
 
@@ -68,12 +70,11 @@ cp .askpass.sh workdir
 docker build -t server-manager .
 
 docker run -d \
-  -p 8080:8080 \                                # active service
-  -p 8081:8081 \                                # non-active
-  -p 127.0.0.1:9090:9090 \                      # manage API
-  -v /abs/path/to/workdir:/workdir \            # workdir
-  -e GIT_URL=https://github.com/repo/path.git \ # git url for pull
-  # -e GIT_ASKPASS="..." \                      # if needed
+  -p 8080:8080 \                     # active service
+  -p 8081:8081 \                     # non-active
+  -p 127.0.0.1:9090:9090 \           # manage API
+  -v /abs/path/to/workdir:/workdir \ # workdir
+  # -e GIT_ASKPASS="..." \           # if needed
   server-manager
 ```
 
