@@ -164,6 +164,9 @@ Inside the container:
 * `/var/log/server1.log` =\> Output from server1 app
 * `/var/log/server2.log` =\> Output from server2 app
 
+Each line in `server1.log` and `server2.log` is prefixed with either `active:` or `non-active:`
+to indicate the slot's role when the line was written.
+
 ## Security
 
 * The **manage port (9090)** controls deployments.

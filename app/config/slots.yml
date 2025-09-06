@@ -1,0 +1,26 @@
+http:
+  routers:
+    web:
+      entryPoints:
+        - web
+      service: s-main
+    test:
+      entryPoints:
+        - web2
+      service: s-server2
+  services:
+    s-main:
+      weighted:
+        services:
+          - name: s-server1
+            weight: 1
+          - name: s-server2
+            weight: 0
+    s-server1:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:4000"
+    s-server2:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:4001"

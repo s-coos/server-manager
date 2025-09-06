@@ -1,0 +1,13 @@
+entryPoints:
+  web:
+    address: ":8080"
+  web2:
+    address: ":8081"
+
+providers:
+  file:
+    filename: /app/config/slots.yml
+    watch: true
+
+log:
+  level: INFO
