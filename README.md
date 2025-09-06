@@ -14,7 +14,8 @@ A lightweight **blue/green deployment manager** that bundles:
 Both "active" and "non-active" app processes run inside the same container (on localhost:4000 and :4001).
 The container exposes two ports:
 
-* **8080** =\> service (user traffic via Traefik)
+* **8080** =\> service (active, user traffic via Traefik)
+* **8081** =\> non-active (for testing, ...)
 * **9090** =\> manage API (deployment control)
 
 ## Features
