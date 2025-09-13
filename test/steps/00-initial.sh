@@ -42,6 +42,7 @@ done
 curl -fso /dev/null "http://localhost:${ACTIVE_PORT}/log/1"
 curl -fso /dev/null "http://localhost:${NON_ACTIVE_PORT}/log/2"
 (curl -sX POST "http://localhost:${MANAGE_PORT}/redeploy-non-active" && echo) >> ../log.jsonl
+sleep 1
 (curl -s "http://localhost:${MANAGE_PORT}/status" && echo) >> ../log.jsonl
 curl -fso /dev/null "http://localhost:${ACTIVE_PORT}/log/3"
 curl -fso /dev/null "http://localhost:${NON_ACTIVE_PORT}/log/4"

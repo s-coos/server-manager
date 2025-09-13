@@ -1,0 +1,19 @@
+non-active: stdout: 
+non-active: stdout: > start
+non-active: stdout: > node --env-file=.env dist/index.js
+non-active: stdout: 
+non-active: stdout: starting
+non-active: stdout: started
+non-active: stdout: 00-initial: 2
+non-active: stdout: 
+non-active: stdout: > start
+non-active: stdout: > node --env-file=.env dist/index.js
+non-active: stdout: 
+non-active: stdout: starting
+non-active: stdout: started
+non-active: stdout: 00-initial: 4
+    active: stdout: 00-initial: 5
+    active: stdout: 00-initial: 7
+    active: stdout: 00-initial: 9
+    active: stdout: 00-initial: 11
+non-active: stdout: 00-initial: 14

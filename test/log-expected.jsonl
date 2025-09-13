@@ -1,0 +1,12 @@
+{"ok":true,"redeployed":"server2"}
+{"server1":true,"server2":true,"active":"server1","non-active":"server2"}
+{"ok":true,"active":"server2"}
+{"server1":true,"server2":true,"active":"server2","non-active":"server1"}
+{"ok":true,"redeployed":"server1"}
+{"server1":false,"server2":true,"active":"server2","non-active":"server1"}
+{"ok":false,"reason":"non-active is not healthy"}
+{"server1":false,"server2":true,"active":"server2","non-active":"server1"}
+{"ok":true,"redeployed":"server1"}
+{"server1":true,"server2":true,"active":"server2","non-active":"server1"}
+{"ok":true,"active":"server1"}
+{"server1":true,"server2":true,"active":"server1","non-active":"server2"}

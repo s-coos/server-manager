@@ -58,16 +58,15 @@ function attachServerLogs(slot: Slot, proc: ChildProcess) {
   const logStream = serverLogs[slot];
   const handle = (line: string) => {
     const prefix = slot === active ? "    active: " : "non-active: ";
-    logStream.write(`${prefix}${line}
-`);
+    logStream.write(`${prefix}${line}\n`);
   };
   if (proc.stdout) {
     const rl = readline.createInterface({ input: proc.stdout });
-    rl.on("line", handle);
+    rl.on("line", (line) => handle(`stdout: ${line}`));
   }
   if (proc.stderr) {
     const rl = readline.createInterface({ input: proc.stderr });
-    rl.on("line", handle);
+    rl.on("line", (line) => handle(`stderr: ${line}`));
   }
 }
 
@@ -75,10 +74,43 @@ function spawnServer(slot: Slot): ChildProcess {
   const cwd = path.join(workdir, slot);
   const proc = spawn("npm", ["start"], {
     cwd,
+    detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
   attachServerLogs(slot, proc);
   return proc;
+}
+
+function waitForExit(proc: ChildProcess, timeoutMs = 5000): Promise<void> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (!done) {
+        done = true;
+        resolve();
+      }
+    };
+    proc.once("exit", finish).once("close", finish);
+    setTimeout(finish, timeoutMs);
+  });
+}
+
+function signalGroup(proc: ChildProcess, sig: NodeJS.Signals = "SIGTERM") {
+  if (proc?.pid && proc.pid > 0) {
+    try {
+      process.kill(-proc.pid, sig);
+    } catch {}
+  }
+}
+
+async function gracefulShutdown(proc: ChildProcess, graceMs = 5000) {
+  if (proc.killed) return;
+  signalGroup(proc, "SIGTERM");
+  await waitForExit(proc, graceMs);
+  if (proc.exitCode === null && proc.signalCode === null) {
+    signalGroup(proc, "SIGKILL");
+    await waitForExit(proc, 1000);
+  }
 }
 
 function runCommand(cmd: string, args: string[], cwd: string): Promise<void> {
@@ -211,7 +243,10 @@ app.post("/redeploy-non-active", async (_req, res) => {
   const cwd = path.join(workdir, target);
   try {
     log(`redeploying ${target}`);
-    procs[target].kill();
+    const old = procs[target];
+    if (!old.killed) {
+      await gracefulShutdown(old, 5000);
+    }
     await runCommand("git", ["pull"], cwd);
     await runCommand("npm", ["install"], cwd);
     await runCommand("npm", ["run", "build"], cwd);

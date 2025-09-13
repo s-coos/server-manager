@@ -28,7 +28,8 @@ git clone bare.git worktree
 git -C worktree config user.name "test"
 git -C worktree config user.email "test@example.com"
 cp -r snapshot/* snapshot/.gitignore worktree/
-# trap 'docker stop "${container_name}" ; rm -rf bare.git tmp.txt log.jsonl worktree workdir logs' EXIT
+
+trap 'docker stop "${container_name}" || true ; rm -rf bare.git tmp.txt log.jsonl worktree workdir logs' EXIT INT TERM
 
 if command -v setsid >/dev/null 2>&1; then
   setsid npx -y http-server -p "$git_port" -c-1 . >/dev/null 2>&1 &
@@ -40,7 +41,7 @@ GIT_SERVER_PID=$!
 PGID=$(ps -o pgid= -p "$GIT_SERVER_PID" | tr -d ' ')
 [ -n "$PGID" ] || PGID=$GIT_SERVER_PID
 
-trap "/bin/kill -9 -- -$PGID 2>/dev/null || true" EXIT INT TERM
+trap "/bin/kill -9 -- -$PGID 2>/dev/null || true ; docker stop "${container_name}" || true ; rm -rf bare.git tmp.txt log.jsonl worktree workdir logs" EXIT INT TERM
 
 fail_count=0
 while ! curl -fsS "http://localhost:${git_port}/" > /dev/null; do
@@ -72,3 +73,9 @@ ls src-snapshots | sort | while IFS= read -r snapshot; do
   CONTAINER_NAME="${container_name}" \
   sh "steps/${snapshot}.sh"
 done
+
+diff -U 3 log.jsonl log-expected.jsonl
+diff -U 3 logs/server1.log server1-expected.log
+diff -U 3 logs/server2.log server2-expected.log
+
+echo "Tests passed"

@@ -1,0 +1,25 @@
+    active: stdout: 
+    active: stdout: > start
+    active: stdout: > node --env-file=.env dist/index.js
+    active: stdout: 
+    active: stdout: starting
+    active: stdout: started
+    active: stdout: 00-initial: 1
+    active: stdout: 00-initial: 3
+non-active: stdout: 00-initial: 6
+non-active: stdout: 
+non-active: stdout: > start
+non-active: stdout: > node --env-file=.env dist/index.js
+non-active: stdout: 
+non-active: stdout: starting
+non-active: stdout: started
+non-active: stdout: 01-failure: 8
+non-active: stdout: 01-failure: 10
+non-active: stdout: 
+non-active: stdout: > start
+non-active: stdout: > node --env-file=.env dist/index.js
+non-active: stdout: 
+non-active: stdout: starting
+non-active: stdout: started
+non-active: stdout: 02-restore: 12
+    active: stdout: 02-restore: 13
