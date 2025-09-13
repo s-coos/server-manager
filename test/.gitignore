@@ -5,4 +5,4 @@
 /workdir
 /logs
 /tmp.txt
-/log.txt
+/log.jsonl

@@ -3,19 +3,28 @@ http:
     web:
       entryPoints:
         - web
-      service: s-main
+      rule: "PathPrefix(`/`)"
+      service: s-active
     test:
       entryPoints:
         - web2
-      service: s-server2
+      rule: "PathPrefix(`/`)"
+      service: s-non-active
   services:
-    s-main:
+    s-active:
       weighted:
         services:
           - name: s-server1
             weight: 1
           - name: s-server2
             weight: 0
+    s-non-active:
+      weighted:
+        services:
+          - name: s-server1
+            weight: 0
+          - name: s-server2
+            weight: 1
     s-server1:
       loadBalancer:
         servers:

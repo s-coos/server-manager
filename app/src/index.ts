@@ -83,7 +83,7 @@ function spawnServer(slot: Slot): ChildProcess {
 
 function runCommand(cmd: string, args: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    log(`run: ${cmd} ${args.join(" ")} in ${cwd}`);
+    log(`run: ${cmd}${args.map((a) => ` ${a}`).join("")} in ${cwd}`);
     const p = spawn(cmd, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
     const handler = (d: Buffer) => managerLog.write(d);
     p.stdout?.on("data", handler);
@@ -93,8 +93,13 @@ function runCommand(cmd: string, args: string[], cwd: string): Promise<void> {
         log(`${cmd} succeeded`);
         resolve();
       } else {
-        log(`${cmd} failed with code ${code}`);
-        reject(new Error(`${cmd} exited with code ${code}`));
+        reject(
+          new Error(
+            `${cmd}${args
+              .map((a) => ` ${a}`)
+              .join("")} exited with code ${code}`
+          )
+        );
       }
     });
     p.on("error", (err) => {
@@ -121,19 +126,28 @@ function writeWeights() {
     web:
       entryPoints:
         - web
-      service: s-main
+      rule: "PathPrefix(\`/\`)"
+      service: s-active
     test:
       entryPoints:
         - web2
-      service: s-server2
+      rule: "PathPrefix(\`/\`)"
+      service: s-non-active
   services:
-    s-main:
+    s-active:
       weighted:
         services:
           - name: s-server1
             weight: ${active === "server1" ? 1 : 0}
           - name: s-server2
             weight: ${active === "server2" ? 1 : 0}
+    s-non-active:
+      weighted:
+        services:
+          - name: s-server1
+            weight: ${active === "server1" ? 0 : 1}
+          - name: s-server2
+            weight: ${active === "server2" ? 0 : 1}
     s-server1:
       loadBalancer:
         servers:
@@ -174,17 +188,22 @@ app.post("/swap", async (_req, res) => {
     return res.json({ ok: false, reason: "swap is already in progress" });
   }
   swapping = true;
-  const target = nonActive();
-  if (!(await checkHealth(target))) {
+  try {
+    const target = nonActive();
+    if (!(await checkHealth(target))) {
+      log("swap aborted: non-active not healthy");
+      res.json({ ok: false, reason: "non-active is not healthy" });
+    } else {
+      active = target;
+      writeWeights();
+      log(`swap complete: active=${active}`);
+      res.json({ ok: true, active });
+    }
+  } catch {
+    res.json({ ok: false, reason: "server error" });
+  } finally {
     swapping = false;
-    log("swap aborted: non-active not healthy");
-    return res.json({ ok: false, reason: "non-active is not healthy" });
   }
-  active = target;
-  writeWeights();
-  swapping = false;
-  log(`swap complete: active=${active}`);
-  res.json({ ok: true, active });
 });
 
 app.post("/redeploy-non-active", async (_req, res) => {
