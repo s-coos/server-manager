@@ -80,6 +80,25 @@ docker run -d \
 
 Traefik will start serving traffic on `http://localhost:8080`.
 
+## `docker-compose.yml` example
+
+It's recommended to use `docker-compose.yml` to run the container.
+
+```yaml
+services:
+  server-manager:
+    image: server-manager
+    ports:
+      - 8080:8080
+      - 127.0.0.1:8081:8081
+      - 127.0.0.1:9090:9090
+    volumes:
+      - ./workdir:/workdir
+    restart: unless-stopped
+    # environment:
+    #   - GIT_ASKPASS=...
+```
+
 ## Management API
 
 ### GET /status
