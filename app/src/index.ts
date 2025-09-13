@@ -248,7 +248,7 @@ app.post("/redeploy-non-active", async (_req, res) => {
       await gracefulShutdown(old, 5000);
     }
     await runCommand("git", ["pull"], cwd);
-    await runCommand("npm", ["install"], cwd);
+    await runCommand("npm", ["ci"], cwd);
     await runCommand("npm", ["run", "build"], cwd);
     await runCommand("npm", ["test"], cwd);
     procs[target] = spawnServer(target);
