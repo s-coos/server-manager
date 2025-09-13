@@ -172,3 +172,15 @@ to indicate the slot's role when the line was written.
 
 * The **manage port (9090)** controls deployments.
   * Restrict it (bind to `127.0.0.1`, firewall, or VPN).
+
+## Development
+
+### Testing
+
+`package-lock.json` for testing is not included in the repo.
+
+```sh
+(cd test/snapshot && npm i)
+sh test/test.sh # ... or add sudo if required as docker operations are performed
+# sudo --preserve-env=PATH sh test/test.sh
+```
