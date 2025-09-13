@@ -1,5 +1,6 @@
 {
-  "name": "server-manager",
+  "private": true,
+  "name": "@this-project/server-manager",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
