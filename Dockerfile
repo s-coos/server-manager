@@ -1,11 +1,11 @@
-FROM traefik:v2.11.2 as traefik
+FROM traefik:v2.11.2 AS traefik
 
-FROM node:20 as deps
+FROM node:20 AS deps
 WORKDIR /app
 COPY app/package*.json ./
 RUN npm ci --omit=dev
 
-FROM node:20 as build
+FROM node:20 AS build
 WORKDIR /app
 COPY app/package*.json ./
 RUN npm ci

@@ -32,7 +32,7 @@ ls src-snapshots | sort | while IFS= read -r snapshot; do
   cp -r "src-snapshots/${snapshot}" "worktree/src"
   git -C worktree add .
   git -C worktree commit -m "${snapshot}"
-  git -C worktree push origin main
+  git -C worktree push
   IMAGE_NAME="${image_name}" \
   ACTIVE_PORT="${active_port}" \
   NON_ACTIVE_PORT="${non_active_port}" \
