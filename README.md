@@ -247,6 +247,8 @@ Status code is ignored.
 
 Opposite of `cancel-prepare-to-be-active`.
 
+You can restart stopped jobs that should not run concurrently.
+
 ## Swap Flow
 
 Swap can be rejected by:
