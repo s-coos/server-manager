@@ -7,6 +7,10 @@ import readline from "readline";
 
 const app = express();
 const managePort = Number(process.env.MANAGE_PORT) || 9090;
+const server1ManageUrl =
+  process.env.SERVER1_MANAGE_URL || "http://localhost:4000/server-manager";
+const server2ManageUrl =
+  process.env.SERVER2_MANAGE_URL || "http://localhost:4001/server-manager";
 const workdir = "/workdir";
 const traefikBin = "traefik";
 const logDir = "/var/log";
@@ -152,6 +156,74 @@ function checkHealth(slot: Slot): Promise<boolean> {
   });
 }
 
+function callWebhook(url: string, timeout = 5000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.request(url, { method: "POST", timeout }, (res) => {
+      resolve(res.statusCode === 200);
+    });
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.end();
+  });
+}
+
+async function prepareSwap(
+  targetSlot: Slot
+): Promise<{ success: boolean; reason?: string }> {
+  const targetUrl =
+    targetSlot === "server1" ? server1ManageUrl : server2ManageUrl;
+  const currentUrl =
+    targetSlot === "server1" ? server2ManageUrl : server1ManageUrl;
+
+  log(`preparing swap: ${targetSlot} -> active`);
+
+  const [prepareActiveResult, prepareNonActiveResult] = await Promise.all([
+    callWebhook(`${targetUrl}/prepare-to-be-active`),
+    callWebhook(`${currentUrl}/prepare-to-be-non-active`),
+  ]);
+
+  if (!prepareActiveResult && !prepareNonActiveResult) {
+    log("swap cancelled: both prepare webhooks failed");
+    return { success: false, reason: "both servers rejected preparation" };
+  }
+
+  if (!prepareActiveResult) {
+    log("swap cancelled: prepare-to-be-active failed");
+    if (prepareNonActiveResult) {
+      await callWebhook(`${currentUrl}/cancel-prepare-to-be-non-active`);
+    }
+    return { success: false, reason: "target server rejected preparation" };
+  }
+
+  if (!prepareNonActiveResult) {
+    log("swap cancelled: prepare-to-be-non-active failed");
+    await callWebhook(`${targetUrl}/cancel-prepare-to-be-active`);
+    return {
+      success: false,
+      reason: "current active server rejected preparation",
+    };
+  }
+
+  return { success: true };
+}
+
+async function completeSwap(targetSlot: Slot): Promise<void> {
+  const targetUrl =
+    targetSlot === "server1" ? server1ManageUrl : server2ManageUrl;
+  const currentUrl =
+    targetSlot === "server1" ? server2ManageUrl : server1ManageUrl;
+
+  log(`completing swap: ${targetSlot} is now active`);
+
+  await Promise.all([
+    callWebhook(`${targetUrl}/activated`),
+    callWebhook(`${currentUrl}/deactivated`),
+  ]);
+}
+
 function writeWeights() {
   const content = `http:
   routers:
@@ -224,14 +296,24 @@ app.post("/swap", async (_req, res) => {
     const target = nonActive();
     if (!(await checkHealth(target))) {
       log("swap aborted: non-active not healthy");
-      res.json({ ok: false, reason: "non-active is not healthy" });
-    } else {
-      active = target;
-      writeWeights();
-      log(`swap complete: active=${active}`);
-      res.json({ ok: true, active });
+      return res.json({ ok: false, reason: "non-active is not healthy" });
     }
-  } catch {
+
+    const prepareResult = await prepareSwap(target);
+    if (!prepareResult.success) {
+      log(`swap aborted: ${prepareResult.reason}`);
+      return res.json({ ok: false, reason: prepareResult.reason });
+    }
+
+    active = target;
+    writeWeights();
+
+    await completeSwap(target);
+
+    log(`swap complete: active=${active}`);
+    res.json({ ok: true, active });
+  } catch (err: any) {
+    log(`swap error: ${err.message}`);
     res.json({ ok: false, reason: "server error" });
   } finally {
     swapping = false;
