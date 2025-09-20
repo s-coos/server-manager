@@ -21,6 +21,7 @@ The container exposes two ports:
 ## Features
 
 * **Zero-downtime cutovers**: switch from active =\> non-active only after health checks pass.
+* **Auto-failover**: automatically swap to non-active server if active becomes unhealthy (checked every minute).
 * **In-place redeploy**: kill the old non-active process, `git pull`, `npm i`, `npm run build`, `npm test`, `npm start`.
 * **Self-contained**: one container, base image = Node.js; Traefik binary is copied in at build.
 * **Hot reload**: Traefik watches `slots.yml` and applies new weights instantly.
@@ -179,6 +180,20 @@ Response:
     Traefik flips weights: server2 = 100, server1 = 0.
     Now Active = server2, Non-active = server1.
 5. **Rollback**: run `/swap` again after redeploying non-active (now server1).
+
+## Auto-Failover
+
+The server manager automatically monitors the health of the active server every minute. If the active server becomes unhealthy but the non-active server is healthy, an automatic swap will occur:
+
+1. **Health check**: Active server `/health` returns non-200 status
+2. **Non-active verification**: Non-active server `/health` returns 200 status
+3. **Automatic swap**: Same process as manual swap with webhook coordination
+4. **Logging**: All auto-swap events are logged for monitoring
+
+Auto-swap will be skipped if:
+- A manual swap is already in progress
+- Both servers are unhealthy
+- Webhook preparation fails (same as manual swap)
 
 ## Swap webhook
 

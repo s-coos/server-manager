@@ -224,6 +224,42 @@ async function completeSwap(targetSlot: Slot): Promise<void> {
   ]);
 }
 
+async function executeSwap(targetSlot: Slot, reason: string): Promise<{ success: boolean; reason?: string }> {
+  if (swapping) {
+    const msg = "swap already in progress";
+    log(`${reason} rejected: ${msg}`);
+    return { success: false, reason: msg };
+  }
+
+  swapping = true;
+  try {
+    if (!(await checkHealth(targetSlot))) {
+      const msg = "target server not healthy";
+      log(`${reason} aborted: ${msg}`);
+      return { success: false, reason: msg };
+    }
+
+    const prepareResult = await prepareSwap(targetSlot);
+    if (!prepareResult.success) {
+      log(`${reason} aborted: ${prepareResult.reason}`);
+      return { success: false, reason: prepareResult.reason };
+    }
+
+    active = targetSlot;
+    writeWeights();
+    await completeSwap(targetSlot);
+
+    log(`${reason} complete: active=${active}`);
+    return { success: true };
+  } catch (err: any) {
+    const msg = `server error: ${err.message}`;
+    log(`${reason} error: ${err.message}`);
+    return { success: false, reason: msg };
+  } finally {
+    swapping = false;
+  }
+}
+
 function writeWeights() {
   const content = `http:
   routers:
@@ -273,6 +309,28 @@ const procs: Record<string, ChildProcess> = {
 
 writeWeights();
 
+async function performAutoSwap(): Promise<void> {
+  const activeHealthy = await checkHealth(active);
+  const nonActiveHealthy = await checkHealth(nonActive());
+
+  if (!activeHealthy && nonActiveHealthy) {
+    const target = nonActive();
+    log(`auto-swap initiated: ${active} unhealthy, ${target} healthy`);
+    await executeSwap(target, "auto-swap");
+  } else if (!activeHealthy && !nonActiveHealthy) {
+    log("auto-swap skipped: both servers unhealthy");
+  }
+}
+
+setTimeout(async function healthMonitor() {
+  try {
+    await performAutoSwap();
+  } catch (err: any) {
+    log(`health monitor error: ${err.message}`);
+  }
+  setTimeout(healthMonitor, 60000);
+}, 60000);
+
 app.get("/status", async (_req, res) => {
   const [h1, h2] = await Promise.all([
     checkHealth("server1"),
@@ -287,36 +345,13 @@ app.get("/status", async (_req, res) => {
 });
 
 app.post("/swap", async (_req, res) => {
-  if (swapping) {
-    log("swap rejected: already in progress");
-    return res.json({ ok: false, reason: "swap is already in progress" });
-  }
-  swapping = true;
-  try {
-    const target = nonActive();
-    if (!(await checkHealth(target))) {
-      log("swap aborted: non-active not healthy");
-      return res.json({ ok: false, reason: "non-active is not healthy" });
-    }
+  const target = nonActive();
+  const result = await executeSwap(target, "manual swap");
 
-    const prepareResult = await prepareSwap(target);
-    if (!prepareResult.success) {
-      log(`swap aborted: ${prepareResult.reason}`);
-      return res.json({ ok: false, reason: prepareResult.reason });
-    }
-
-    active = target;
-    writeWeights();
-
-    await completeSwap(target);
-
-    log(`swap complete: active=${active}`);
+  if (result.success) {
     res.json({ ok: true, active });
-  } catch (err: any) {
-    log(`swap error: ${err.message}`);
-    res.json({ ok: false, reason: "server error" });
-  } finally {
-    swapping = false;
+  } else {
+    res.json({ ok: false, reason: result.reason });
   }
 });
 
