@@ -162,7 +162,7 @@ Response:
 
 1. **Initial state**:
     - Active (server1) live (`weight: 100`), Non-active (server2) idle (`weight: 0`).
-    - After first successful health check on server1, server1 will receive now-active webhook.
+    - After first successful health check on server1, server1 will receive prepare-to-be-active and activated webhooks.
 2. **Redeploy non-active**:
     ```sh
     curl -X POST localhost:9090/redeploy-non-active

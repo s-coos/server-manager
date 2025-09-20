@@ -32,6 +32,7 @@ const slotsConfig = path.join(configDir, "slots.yml");
 type Slot = "server1" | "server2";
 let active: Slot = "server1";
 let swapping = false;
+let server1FirstHealthCheckCompleted = false;
 
 function nonActive(): Slot {
   return active === "server1" ? "server2" : "server1";
@@ -224,7 +225,25 @@ async function completeSwap(targetSlot: Slot): Promise<void> {
   ]);
 }
 
-async function executeSwap(targetSlot: Slot, reason: string): Promise<{ success: boolean; reason?: string }> {
+async function sendInitialWebhooksForServer1(): Promise<void> {
+  log(
+    "sending initial webhooks for server1: prepare-to-be-active and activated"
+  );
+
+  while (!(await callWebhook(`${server1ManageUrl}/prepare-to-be-active`)));
+  await callWebhook(`${server1ManageUrl}/activated`);
+}
+
+async function executeSwap(
+  targetSlot: Slot,
+  reason: string
+): Promise<{ success: boolean; reason?: string }> {
+  if (!server1FirstHealthCheckCompleted) {
+    const msg = "server1 first health check not completed";
+    log(`${reason} aborted: ${msg}`);
+    return { success: false, reason: msg };
+  }
+
   if (swapping) {
     const msg = "swap already in progress";
     log(`${reason} rejected: ${msg}`);
@@ -322,14 +341,38 @@ async function performAutoSwap(): Promise<void> {
   }
 }
 
-setTimeout(async function healthMonitor() {
+async function waitForServer1HealthAndStart(): Promise<void> {
+  try {
+    if (!server1FirstHealthCheckCompleted) {
+      const server1Healthy = await checkHealth("server1");
+      if (server1Healthy) {
+        log("server1 first successful health check completed");
+        await sendInitialWebhooksForServer1();
+        log("initial webhooks sent to server1");
+        server1FirstHealthCheckCompleted = true;
+
+        // Start the regular health monitoring
+        setTimeout(healthMonitor, 60000);
+        return;
+      }
+    }
+  } catch (err: any) {
+    log(`server1 initial health check error: ${err.message}`);
+  }
+
+  setTimeout(waitForServer1HealthAndStart, 5000);
+}
+
+async function healthMonitor(): Promise<void> {
   try {
     await performAutoSwap();
   } catch (err: any) {
     log(`health monitor error: ${err.message}`);
   }
   setTimeout(healthMonitor, 60000);
-}, 60000);
+}
+
+waitForServer1HealthAndStart();
 
 app.get("/status", async (_req, res) => {
   const [h1, h2] = await Promise.all([
