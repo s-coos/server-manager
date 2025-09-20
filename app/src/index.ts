@@ -160,7 +160,7 @@ function checkHealth(slot: Slot): Promise<boolean> {
 function callWebhook(url: string, timeout = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const req = http.request(url, { method: "POST", timeout }, (res) => {
-      resolve(res.statusCode === 200);
+      resolve(res.statusCode === 200 || res.statusCode === 404);
     });
     req.on("error", () => resolve(false));
     req.on("timeout", () => {

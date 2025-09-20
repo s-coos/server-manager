@@ -209,15 +209,15 @@ To report that the server is healthy, you should return 200 status code.
 
 Notify about swap for servers, that this server is going to be active.
 
-To report that the server is healthy, you should return 200 status code.
+To report that the server is healthy, you should return 200 or 404 status code.
 
 ### POST `${MANAGE_URL}/prepare-to-be-non-active`
 
 Opposite of `prepare-to-be-active`, called concurently with it.
 
-You can reject swap by returning non-200 status code.
+You can reject swap by returning non-200 or non-404 status code.
 
-Before returning 200, the server must stop all tasks that should not run concurrently but may be temporarily paused. (Use something other for tasks should not be stopped.)
+Before returning 200 or 404, the server must stop all tasks that should not run concurrently but may be temporarily paused. (Use something other for tasks should not be stopped.)
 
 ### POST `${MANAGE_URL}/activated`
 
