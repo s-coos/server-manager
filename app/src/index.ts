@@ -101,11 +101,9 @@ function waitForExit(proc: ChildProcess, timeoutMs = 5000): Promise<void> {
 }
 
 function signalGroup(proc: ChildProcess, sig: NodeJS.Signals = "SIGTERM") {
-  if (proc?.pid && proc.pid > 0) {
-    try {
-      process.kill(-proc.pid, sig);
-    } catch {}
-  }
+  try {
+    process.kill(-proc.pid!, sig);
+  } catch {}
 }
 
 async function gracefulShutdown(proc: ChildProcess, graceMs = 5000) {
@@ -404,9 +402,7 @@ app.post("/redeploy-non-active", async (_req, res) => {
   try {
     log(`redeploying ${target}`);
     const old = procs[target];
-    if (!old.killed) {
-      await gracefulShutdown(old, 5000);
-    }
+    await gracefulShutdown(old, 5000);
     await runCommand("git", ["pull"], cwd);
     await runCommand("npm", ["ci"], cwd);
     await runCommand("npm", ["run", "build"], cwd);
