@@ -180,8 +180,12 @@ async function prepareSwap(
   log(`preparing swap: ${targetSlot} -> active`);
 
   const [prepareActiveResult, prepareNonActiveResult] = await Promise.all([
-    callWebhook(`${targetUrl}/prepare-to-be-active`),
-    callWebhook(`${currentUrl}/prepare-to-be-non-active`),
+    (async () =>
+      !(await checkHealth(targetSlot)) ||
+      (await callWebhook(`${targetUrl}/prepare-to-be-active`)))(),
+    (async () =>
+      !(await checkHealth(targetSlot === "server1" ? "server2" : "server1")) ||
+      (await callWebhook(`${currentUrl}/prepare-to-be-non-active`)))(),
   ]);
 
   if (!prepareActiveResult && !prepareNonActiveResult) {
